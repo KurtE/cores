@@ -117,10 +117,16 @@ void serial2_begin(uint32_t divisor)
 	switch (rx_pin_num) {
 		case 9: CORE_PIN9_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_PFE | PORT_PCR_MUX(3); break;
 		case 26: CORE_PIN26_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_PFE | PORT_PCR_MUX(3); break;
+		#if defined USE_SDCARD_PINS && (defined(__MK64FX512__) || defined(__MK66FX1M0__))  // on T3.4 or T3.5
+		case 59: CORE_PIN59_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_PFE | PORT_PCR_MUX(3); break;
+		#endif
 	}
 	switch (tx_pin_num) {
 		case 10: CORE_PIN10_CONFIG = PORT_PCR_DSE | PORT_PCR_SRE | PORT_PCR_MUX(3); break;
 		case 31: CORE_PIN31_CONFIG = PORT_PCR_DSE | PORT_PCR_SRE | PORT_PCR_MUX(3); break;
+		#if defined USE_SDCARD_PINS && (defined(__MK64FX512__) || defined(__MK66FX1M0__))  // on T3.4 or T3.5
+		case 58: CORE_PIN58_CONFIG = PORT_PCR_DSE | PORT_PCR_SRE | PORT_PCR_MUX(3); break;
+		#endif
 	}
 #elif defined(KINETISL)
 	CORE_PIN9_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_PFE | PORT_PCR_MUX(3);
@@ -184,8 +190,24 @@ void serial2_end(void)
 	while (transmitting) yield();  // wait for buffered data to send
 	NVIC_DISABLE_IRQ(IRQ_UART1_STATUS);
 	UART1_C2 = 0;
-	CORE_PIN9_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_MUX(1);
-	CORE_PIN10_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_MUX(1);
+	switch (rx_pin_num) {
+		case 9: CORE_PIN9_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_MUX(1); break; // PTC3
+		#if !(defined(__MK64FX512__) || defined(__MK66FX1M0__))  // not on T3.4 or T3.5
+		case 26: CORE_PIN26_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_MUX(1); break; // PTE1
+		#endif
+		#if defined USE_SDCARD_PINS && (defined(__MK64FX512__) || defined(__MK66FX1M0__))  // on T3.4 or T3.5
+		case 59: CORE_PIN59_CONFIG = 0; break;
+		#endif
+	}
+	switch (tx_pin_num & 127) {
+		case 10: CORE_PIN10_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_MUX(1); break; // PTC4
+		#if !(defined(__MK64FX512__) || defined(__MK66FX1M0__))  // not on T3.4 or T3.5
+		case 31: CORE_PIN31_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_MUX(1); break; // PTE0
+		#endif
+		#if defined USE_SDCARD_PINS && (defined(__MK64FX512__) || defined(__MK66FX1M0__))  // on T3.4 or T3.5
+		case 58: CORE_PIN58_CONFIG = 0; break;
+		#endif
+	}
 	rx_buffer_head = 0;
 	rx_buffer_tail = 0;
 	if (rts_pin) rts_deassert();
@@ -215,6 +237,9 @@ void serial2_set_tx(uint8_t pin, uint8_t opendrain)
 			#if !(defined(__MK64FX512__) || defined(__MK66FX1M0__))  // not on T3.4 or T3.5
 			case 31: CORE_PIN31_CONFIG = 0; break; // PTE0
 			#endif
+			#if defined USE_SDCARD_PINS && (defined(__MK64FX512__) || defined(__MK66FX1M0__))  // on T3.4 or T3.5
+			case 58: CORE_PIN58_CONFIG = 0; break;
+			#endif
 		}
 		if (opendrain) {
 			cfg = PORT_PCR_DSE | PORT_PCR_ODE;
@@ -225,6 +250,9 @@ void serial2_set_tx(uint8_t pin, uint8_t opendrain)
 			case 10: CORE_PIN10_CONFIG = cfg | PORT_PCR_MUX(3); break;
 			#if !(defined(__MK64FX512__) || defined(__MK66FX1M0__))  // not on T3.4 or T3.5
 			case 31: CORE_PIN31_CONFIG = cfg | PORT_PCR_MUX(3); break;
+			#endif
+			#if defined USE_SDCARD_PINS && (defined(__MK64FX512__) || defined(__MK66FX1M0__))  // on T3.4 or T3.5
+			case 58: CORE_PIN58_CONFIG = cfg | PORT_PCR_MUX(3); break;
 			#endif
 		}
 	}
@@ -242,11 +270,17 @@ void serial2_set_rx(uint8_t pin)
 			#if !(defined(__MK64FX512__) || defined(__MK66FX1M0__))  // not on T3.4 or T3.5
 			case 26: CORE_PIN26_CONFIG = 0; break; // PTE1
 			#endif
+			#if defined USE_SDCARD_PINS && (defined(__MK64FX512__) || defined(__MK66FX1M0__))  // on T3.4 or T3.5
+			case 59: CORE_PIN59_CONFIG = 0; break;
+			#endif
 		}
 		switch (pin) {
 			case 9: CORE_PIN9_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_PFE | PORT_PCR_MUX(3); break;
 			#if !(defined(__MK64FX512__) || defined(__MK66FX1M0__))  // not on T3.4 or T3.5
 			case 26: CORE_PIN26_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_PFE | PORT_PCR_MUX(3); break;
+			#endif
+			#if defined USE_SDCARD_PINS && (defined(__MK64FX512__) || defined(__MK66FX1M0__))  // on T3.4 or T3.5
+			case 59: CORE_PIN59_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_PFE | PORT_PCR_MUX(3); break;
 			#endif
 		}
 	}
@@ -287,6 +321,10 @@ int serial2_set_cts(uint8_t pin)
 	if (!(SIM_SCGC4 & SIM_SCGC4_UART1)) return 0;
 	if (pin == 23) {
 		CORE_PIN23_CONFIG = PORT_PCR_MUX(3) | PORT_PCR_PE; // weak pulldown
+	#if defined USE_SDCARD_PINS && (defined(__MK64FX512__) || defined(__MK66FX1M0__))  // on T3.4 or T3.5
+	} else if (pin == 60) {
+		CORE_PIN60_CONFIG = PORT_PCR_MUX(3) | PORT_PCR_PE; // weak pulldown
+	#endif
 	} else {
 		UART1_MODEM &= ~UART_MODEM_TXCTSE;
 		return 0;
